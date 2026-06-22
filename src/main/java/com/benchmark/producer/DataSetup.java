@@ -93,6 +93,36 @@ public class DataSetup {
         }
     }
 
+    public void resetForNextRun() throws Exception {
+        Properties props = new Properties();
+        props.put("bootstrap.servers", AppConfig.BOOTSTRAP_SERVERS);
+        try (AdminClient admin = AdminClient.create(props)) {
+            // Delete input + output topics but NOT products-ref — local KTable state stays valid
+            List<String> toDelete = List.of(
+                AppConfig.TOPIC_ORDERS_RAW, AppConfig.TOPIC_ORDERS_BY_PRODUCT,
+                AppConfig.TOPIC_ENRICHED_KTABLE, AppConfig.TOPIC_ENRICHED_KTABLE_COPART,
+                AppConfig.TOPIC_ENRICHED_KTABLE_GLOBAL,
+                AppConfig.TOPIC_ENRICHED_MONGO, AppConfig.TOPIC_ENRICHED_WINDOWED_MONGO
+            );
+            try {
+                admin.deleteTopics(toDelete).all().get(30, TimeUnit.SECONDS);
+                Thread.sleep(2_000);
+            } catch (Exception e) {
+                log.debug("resetForNextRun deletion: {}", e.getMessage());
+            }
+            admin.createTopics(List.of(
+                new NewTopic(AppConfig.TOPIC_ORDERS_RAW,              4, (short) 1),
+                new NewTopic(AppConfig.TOPIC_ORDERS_BY_PRODUCT,       4, (short) 1),
+                new NewTopic(AppConfig.TOPIC_ENRICHED_KTABLE,         4, (short) 1),
+                new NewTopic(AppConfig.TOPIC_ENRICHED_KTABLE_COPART,  4, (short) 1),
+                new NewTopic(AppConfig.TOPIC_ENRICHED_KTABLE_GLOBAL,  4, (short) 1),
+                new NewTopic(AppConfig.TOPIC_ENRICHED_MONGO,          4, (short) 1),
+                new NewTopic(AppConfig.TOPIC_ENRICHED_WINDOWED_MONGO, 4, (short) 1)
+            )).all().get(30, TimeUnit.SECONDS);
+            log.info("Topics reset for next rate run");
+        }
+    }
+
     private void clearLocalStreamsState() {
         Path stateDir = Path.of("/tmp/kafka-streams");
         if (!Files.exists(stateDir)) return;

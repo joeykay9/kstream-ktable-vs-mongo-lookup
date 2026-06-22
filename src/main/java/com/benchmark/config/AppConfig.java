@@ -22,5 +22,9 @@ public final class AppConfig {
     // How long the windowed batch pipeline buffers records before flushing to MongoDB
     public static final long WINDOW_MS = 100L;
 
+    // Throughput benchmark: producer rates (rec/sec) and orders per rate run
+    public static final int[] THROUGHPUT_RATES = {500, 2_000, 5_000, 10_000};
+    public static final int THROUGHPUT_ORDER_COUNT = 5_000;
+
     private AppConfig() {}
 }

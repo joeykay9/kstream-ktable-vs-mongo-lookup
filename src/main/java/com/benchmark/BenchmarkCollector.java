@@ -14,10 +14,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class BenchmarkCollector {
     private static final Logger log = LoggerFactory.getLogger(BenchmarkCollector.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    public record RateRun(int ratePerSecond, List<Stats> statsList) {}
 
     public record Stats(String label, List<Long> latencies) {
         long count() { return latencies.size(); }
@@ -32,6 +37,27 @@ public class BenchmarkCollector {
             if (latencies.isEmpty()) return 0;
             int idx = (int) Math.ceil(p / 100.0 * latencies.size()) - 1;
             return latencies.get(Math.max(0, Math.min(idx, latencies.size() - 1)));
+        }
+    }
+
+    // Collects from all topics in parallel using virtual threads, sharing a single deadline.
+    public List<Stats> collectAll(List<String> topics, List<String> labels,
+                                  int expectedCount, long timeoutMs) {
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        try (ExecutorService exec = Executors.newVirtualThreadPerTaskExecutor()) {
+            List<Future<Stats>> futures = new ArrayList<>();
+            for (int i = 0; i < topics.size(); i++) {
+                final int idx = i;
+                futures.add(exec.submit(() -> collect(
+                    topics.get(idx), labels.get(idx), expectedCount,
+                    Math.max(1_000, deadline - System.currentTimeMillis()))));
+            }
+            List<Stats> results = new ArrayList<>();
+            for (Future<Stats> f : futures) {
+                try { results.add(f.get()); }
+                catch (Exception e) { throw new RuntimeException(e); }
+            }
+            return results;
         }
     }
 
