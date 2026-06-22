@@ -8,10 +8,11 @@
   <style>
     body { font-family: system-ui, sans-serif; max-width: 960px; margin: 48px auto; padding: 0 24px; color: #1e293b; }
     h1 { font-size: 1.4rem; font-weight: 700; margin: 0 0 6px; }
-    .meta { color: #64748b; font-size: 0.85rem; margin: 0 0 24px; }
-    .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-    .chart-header h2 { font-size: 0.85rem; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: .05em; margin: 0; }
-    .chart-wrap { position: relative; height: 420px; margin-bottom: 40px; background: #fff; }
+    .meta { color: #64748b; font-size: 0.85rem; margin: 0 0 36px; }
+    .section { margin-bottom: 48px; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .section-header h2 { font-size: 0.85rem; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: .05em; margin: 0; }
+    .chart-wrap { position: relative; height: 420px; background: #fff; }
     button.export {
       font: 0.8rem/1 system-ui, sans-serif; color: #3b82f6; background: #eff6ff;
       border: 1px solid #bfdbfe; border-radius: 6px; padding: 6px 14px;
@@ -28,63 +29,84 @@
 </head>
 <body>
   <h1>Enrichment Latency Benchmark</h1>
-  <p class="meta">2026-06-22 22:20:20 &nbsp;·&nbsp; 10000 orders &nbsp;·&nbsp; 1000 products &nbsp;·&nbsp; Mongo-Batch window: 100ms</p>
-  <div class="chart-header">
-    <h2>Latency by percentile (ms)</h2>
-    <button class="export" onclick="exportPng()">Download chart PNG</button>
+  <p class="meta">2026-06-22 22:42:26 &nbsp;·&nbsp; 5000 orders per rate &nbsp;·&nbsp; 1000 products &nbsp;·&nbsp; Mongo-Batch window: 100ms</p>
+
+  <div class="section">
+    <div class="section-header">
+      <h2>Latency distribution at 10000 rec/s (ms)</h2>
+      <button class="export" onclick="exportPng('bar')">Download PNG</button>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="barChart"></canvas>
+    </div>
   </div>
-  <div class="chart-wrap">
-    <canvas id="chart"></canvas>
+
+  <div class="section">
+    <div class="section-header">
+      <h2>p99 latency vs throughput rate (ms)</h2>
+      <button class="export" onclick="exportPng('line')">Download PNG</button>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="lineChart"></canvas>
+    </div>
   </div>
+
   <table>
     <thead>
       <tr><th>Strategy</th><th>min</th><th>mean</th><th>p50</th><th>p99</th><th>p99.9</th><th>n</th></tr>
     </thead>
     <tbody>
-      <tr><td>KTable-Co</td><td>68</td><td>576</td><td>572</td><td>1456</td><td>1461</td><td>10000</td></tr><tr><td>GlobalKTable</td><td>43</td><td>355</td><td>321</td><td>710</td><td>717</td><td>10000</td></tr><tr><td>KTable</td><td>133</td><td>1539</td><td>1736</td><td>2240</td><td>2256</td><td>10000</td></tr><tr><td>Mongo-Batch</td><td>266</td><td>1125</td><td>1081</td><td>1887</td><td>1898</td><td>10000</td></tr><tr><td>Mongo-Sync</td><td>268</td><td>11516</td><td>12698</td><td>17147</td><td>17183</td><td>10000</td></tr>
+      <tr><td>KTable-Co</td><td>34</td><td>165</td><td>163</td><td>311</td><td>325</td><td>5000</td></tr><tr><td>GlobalKTable</td><td>28</td><td>97</td><td>92</td><td>213</td><td>229</td><td>5000</td></tr><tr><td>KTable</td><td>172</td><td>297</td><td>278</td><td>487</td><td>511</td><td>5000</td></tr><tr><td>Mongo-Batch</td><td>119</td><td>298</td><td>294</td><td>497</td><td>514</td><td>5000</td></tr><tr><td>Mongo-Sync</td><td>118</td><td>1625</td><td>1370</td><td>2848</td><td>2851</td><td>5000</td></tr>
     </tbody>
   </table>
+
   <script>
-    const chart = new Chart(document.getElementById('chart'), {
+    const barChart = new Chart(document.getElementById('barChart'), {
       type: 'bar',
       data: {
         labels: ['min', 'mean', 'p50', 'p99', 'p99.9'],
-        datasets: [{label:'KTable-Co',backgroundColor:'#22c55e',data:[68.0,575.9,572.0,1456.0,1461.0]},{label:'GlobalKTable',backgroundColor:'#3b82f6',data:[43.0,354.6,321.0,710.0,717.0]},{label:'KTable',backgroundColor:'#f97316',data:[133.0,1538.9,1736.0,2240.0,2256.0]},{label:'Mongo-Batch',backgroundColor:'#ef4444',data:[266.0,1125.2,1081.0,1887.0,1898.0]},{label:'Mongo-Sync',backgroundColor:'#a855f7',data:[268.0,11515.6,12698.0,17147.0,17183.0]}]
+        datasets: [{label:'KTable-Co',backgroundColor:'#22c55e',data:[34.0,165.2,163.0,311.0,325.0]},{label:'GlobalKTable',backgroundColor:'#3b82f6',data:[28.0,97.5,92.0,213.0,229.0]},{label:'KTable',backgroundColor:'#f97316',data:[172.0,297.1,278.0,487.0,511.0]},{label:'Mongo-Batch',backgroundColor:'#ef4444',data:[119.0,298.1,294.0,497.0,514.0]},{label:'Mongo-Sync',backgroundColor:'#a855f7',data:[118.0,1624.8,1370.0,2848.0,2851.0]}]
       },
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
+        responsive: true, maintainAspectRatio: false,
         plugins: {
           legend: { position: 'top' },
-          tooltip: {
-            callbacks: {
-              label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(1) + ' ms'
-            }
-          }
+          tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(1) + ' ms' } }
+        },
+        scales: { y: { beginAtZero: true, title: { display: true, text: 'Latency (ms)' } } }
+      }
+    });
+
+    const lineChart = new Chart(document.getElementById('lineChart'), {
+      type: 'line',
+      data: {
+        labels: [500,2000,5000,10000],
+        datasets: [{label:'KTable-Co',borderColor:'#22c55e',backgroundColor:'#22c55e',pointBackgroundColor:'#22c55e',tension:0.3,fill:false,data:[397.0,630.0,207.0,311.0]},{label:'GlobalKTable',borderColor:'#3b82f6',backgroundColor:'#3b82f6',pointBackgroundColor:'#3b82f6',tension:0.3,fill:false,data:[311.0,605.0,145.0,213.0]},{label:'KTable',borderColor:'#f97316',backgroundColor:'#f97316',pointBackgroundColor:'#f97316',tension:0.3,fill:false,data:[1101.0,798.0,385.0,487.0]},{label:'Mongo-Batch',borderColor:'#ef4444',backgroundColor:'#ef4444',pointBackgroundColor:'#ef4444',tension:0.3,fill:false,data:[1164.0,740.0,491.0,497.0]},{label:'Mongo-Sync',borderColor:'#a855f7',backgroundColor:'#a855f7',pointBackgroundColor:'#a855f7',tension:0.3,fill:false,data:[7728.0,6913.0,2584.0,2848.0]}]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(0) + ' ms p99' } }
         },
         scales: {
-          y: {
-            beginAtZero: true,
-            title: { display: true, text: 'Latency (ms)' }
-          }
+          x: { title: { display: true, text: 'Target rate (rec/s)' } },
+          y: { beginAtZero: true, title: { display: true, text: 'p99 latency (ms)' } }
         }
       }
     });
 
-    function exportPng() {
-      // Draw chart onto white background before exporting (canvas default is transparent)
-      const canvas = document.getElementById('chart');
+    function exportPng(which) {
+      const canvas = document.getElementById(which === 'bar' ? 'barChart' : 'lineChart');
       const out = document.createElement('canvas');
-      out.width = canvas.width;
-      out.height = canvas.height;
+      out.width = canvas.width; out.height = canvas.height;
       const ctx = out.getContext('2d');
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, out.width, out.height);
       ctx.drawImage(canvas, 0, 0);
-
       const a = document.createElement('a');
       a.href = out.toDataURL('image/png');
-      a.download = 'benchmark-20260622-222020.png';
+      a.download = 'benchmark-20260622-224226-' + which + '.png';
       a.click();
     }
   </script>
