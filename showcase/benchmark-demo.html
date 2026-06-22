@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Benchmark Results</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 960px; margin: 48px auto; padding: 0 24px; color: #1e293b; }
+    h1 { font-size: 1.4rem; font-weight: 700; margin: 0 0 6px; }
+    .meta { color: #64748b; font-size: 0.85rem; margin: 0 0 36px; }
+    .chart-wrap { position: relative; height: 420px; margin-bottom: 40px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { padding: 10px 16px; text-align: right; border-bottom: 1px solid #e2e8f0; font-variant-numeric: tabular-nums; }
+    th:first-child, td:first-child { text-align: left; font-variant-numeric: normal; }
+    th { background: #f8fafc; font-weight: 600; color: #475569; font-size: 0.8rem; letter-spacing: .04em; text-transform: uppercase; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8fafc; }
+  </style>
+</head>
+<body>
+  <h1>Enrichment Latency Benchmark</h1>
+  <p class="meta">2026-06-22 20:12:10 &nbsp;·&nbsp; 10000 orders &nbsp;·&nbsp; 1000 products &nbsp;·&nbsp; Mongo-Batch window: 100ms</p>
+  <div class="chart-wrap">
+    <canvas id="chart"></canvas>
+  </div>
+  <table>
+    <thead>
+      <tr><th>Strategy</th><th>min</th><th>mean</th><th>p50</th><th>p99</th><th>p99.9</th><th>n</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>KTable-Co</td><td>47</td><td>406</td><td>427</td><td>666</td><td>670</td><td>10000</td></tr><tr><td>KTable</td><td>154</td><td>928</td><td>853</td><td>1438</td><td>1462</td><td>10000</td></tr><tr><td>Mongo-Batch</td><td>202</td><td>734</td><td>715</td><td>1043</td><td>1060</td><td>10000</td></tr><tr><td>Mongo-Sync</td><td>199</td><td>4871</td><td>4701</td><td>8318</td><td>8417</td><td>10000</td></tr>
+    </tbody>
+  </table>
+  <script>
+    new Chart(document.getElementById('chart'), {
+      type: 'bar',
+      data: {
+        labels: ['min', 'mean', 'p50', 'p99', 'p99.9'],
+        datasets: [{label:'KTable-Co',backgroundColor:'#22c55e',data:[47.0,405.6,427.0,666.0,670.0]},{label:'KTable',backgroundColor:'#3b82f6',data:[154.0,927.7,853.0,1438.0,1462.0]},{label:'Mongo-Batch',backgroundColor:'#f97316',data:[202.0,734.2,715.0,1043.0,1060.0]},{label:'Mongo-Sync',backgroundColor:'#ef4444',data:[199.0,4871.2,4701.0,8318.0,8417.0]}]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: {
+            callbacks: {
+              label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(1) + ' ms'
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: 'Latency (ms)' }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

@@ -52,7 +52,14 @@ On first run Gradle may download Java 21 automatically — this is expected and 
 
 ## Output
 
-Each run prints a latency table to stdout and writes a self-contained HTML report to `results/benchmark-<timestamp>.html`. Open it in any browser to see a grouped bar chart across all four strategies.
+Each run prints a latency table to stdout and writes a self-contained HTML report to `results/benchmark-<timestamp>.html`. Open it in any browser to see a grouped bar chart across all four strategies. The report includes a **"Download chart PNG"** button for pulling the chart into slides.
+
+`results/` is gitignored — it accumulates local run history but is never committed. To promote a result for stakeholders, copy it to `showcase/`:
+
+```bash
+cp results/benchmark-<timestamp>.html showcase/benchmark-demo.html
+git add showcase/benchmark-demo.html && git commit -m "update showcase result"
+```
 
 Kafka UI is available at **http://localhost:8080** (when started) to inspect topics, messages, and consumer group lag in real time.
 
