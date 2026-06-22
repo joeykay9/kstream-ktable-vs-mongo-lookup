@@ -58,6 +58,7 @@ public class DataSetup {
                 new NewTopic(AppConfig.TOPIC_ORDERS_BY_PRODUCT, 4, (short) 1),
                 new NewTopic(AppConfig.TOPIC_ENRICHED_KTABLE, 4, (short) 1),
                 new NewTopic(AppConfig.TOPIC_ENRICHED_KTABLE_COPART, 4, (short) 1),
+                new NewTopic(AppConfig.TOPIC_ENRICHED_KTABLE_GLOBAL, 4, (short) 1),
                 new NewTopic(AppConfig.TOPIC_ENRICHED_MONGO, 4, (short) 1),
                 new NewTopic(AppConfig.TOPIC_ENRICHED_WINDOWED_MONGO, 4, (short) 1)
             );

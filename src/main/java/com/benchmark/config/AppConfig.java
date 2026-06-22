@@ -13,6 +13,7 @@ public final class AppConfig {
     public static final String TOPIC_PRODUCTS_REF = "products-ref";
     public static final String TOPIC_ENRICHED_KTABLE = "orders-enriched-ktable";
     public static final String TOPIC_ENRICHED_KTABLE_COPART = "orders-enriched-ktable-copart";
+    public static final String TOPIC_ENRICHED_KTABLE_GLOBAL = "orders-enriched-ktable-global";
     public static final String TOPIC_ENRICHED_MONGO = "orders-enriched-mongo";
     public static final String TOPIC_ENRICHED_WINDOWED_MONGO = "orders-enriched-windowed-mongo";
 
