@@ -16,6 +16,9 @@ import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -28,6 +31,7 @@ public class DataSetup {
     public List<Product> setupAll() throws Exception {
         List<Product> products = generateProducts();
         createTopics();
+        clearLocalStreamsState();
         loadProductsToKafka(products);
         loadProductsToMongo(products);
         return products;
@@ -47,10 +51,32 @@ public class DataSetup {
         return products;
     }
 
-    private void createTopics() {
+    private void createTopics() throws Exception {
         Properties props = new Properties();
         props.put("bootstrap.servers", AppConfig.BOOTSTRAP_SERVERS);
         try (AdminClient admin = AdminClient.create(props)) {
+            List<String> names = List.of(
+                AppConfig.TOPIC_PRODUCTS_REF,
+                AppConfig.TOPIC_ORDERS_RAW,
+                AppConfig.TOPIC_ORDERS_BY_PRODUCT,
+                AppConfig.TOPIC_ENRICHED_KTABLE,
+                AppConfig.TOPIC_ENRICHED_KTABLE_COPART,
+                AppConfig.TOPIC_ENRICHED_KTABLE_GLOBAL,
+                AppConfig.TOPIC_ENRICHED_MONGO,
+                AppConfig.TOPIC_ENRICHED_WINDOWED_MONGO
+            );
+
+            // Delete first so every run starts from offset 0 with no stale records.
+            // Without this, a pipeline running for the first time (no committed offsets)
+            // would read all historical records from prior runs and report bogus latencies.
+            try {
+                admin.deleteTopics(names).all().get(30, TimeUnit.SECONDS);
+                Thread.sleep(2_000); // wait for broker to finish deletion
+                log.info("Existing topics deleted");
+            } catch (Exception e) {
+                log.debug("Topic deletion skipped (first run or already gone): {}", e.getMessage());
+            }
+
             List<NewTopic> topics = List.of(
                 compactedTopic(AppConfig.TOPIC_PRODUCTS_REF, 4),
                 new NewTopic(AppConfig.TOPIC_ORDERS_RAW, 4, (short) 1),
@@ -64,8 +90,24 @@ public class DataSetup {
             );
             admin.createTopics(topics).all().get(30, TimeUnit.SECONDS);
             log.info("Topics created");
-        } catch (Exception e) {
-            log.warn("Topic creation skipped (may already exist): {}", e.getMessage());
+        }
+    }
+
+    private void clearLocalStreamsState() {
+        Path stateDir = Path.of("/tmp/kafka-streams");
+        if (!Files.exists(stateDir)) return;
+        try {
+            Files.walkFileTree(stateDir, new SimpleFileVisitor<>() {
+                @Override public FileVisitResult visitFile(Path f, BasicFileAttributes a) throws IOException {
+                    Files.delete(f); return FileVisitResult.CONTINUE;
+                }
+                @Override public FileVisitResult postVisitDirectory(Path d, IOException e) throws IOException {
+                    Files.delete(d); return FileVisitResult.CONTINUE;
+                }
+            });
+            log.info("Cleared local Kafka Streams state");
+        } catch (IOException e) {
+            log.warn("Could not fully clear Kafka Streams state: {}", e.getMessage());
         }
     }
 
