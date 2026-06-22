@@ -45,12 +45,13 @@ public class HtmlReporter {
         }
 
         return TEMPLATE
-            .replace("{{TIMESTAMP}}",     ts.format(DISPLAY_FMT))
-            .replace("{{ORDER_COUNT}}",   String.valueOf(AppConfig.ORDER_COUNT))
+            .replace("{{TIMESTAMP}}",      ts.format(DISPLAY_FMT))
+            .replace("{{TIMESTAMP_FILE}}", ts.format(FILE_FMT))
+            .replace("{{ORDER_COUNT}}",    String.valueOf(AppConfig.ORDER_COUNT))
             .replace("{{PRODUCT_COUNT}}", String.valueOf(AppConfig.PRODUCT_COUNT))
-            .replace("{{WINDOW_MS}}",     String.valueOf(AppConfig.WINDOW_MS))
-            .replace("{{DATASETS}}",      datasets)
-            .replace("{{TABLE_ROWS}}",    tableRows);
+            .replace("{{WINDOW_MS}}",      String.valueOf(AppConfig.WINDOW_MS))
+            .replace("{{DATASETS}}",       datasets)
+            .replace("{{TABLE_ROWS}}",     tableRows);
     }
 
     private static final String TEMPLATE = """
@@ -64,8 +65,16 @@ public class HtmlReporter {
   <style>
     body { font-family: system-ui, sans-serif; max-width: 960px; margin: 48px auto; padding: 0 24px; color: #1e293b; }
     h1 { font-size: 1.4rem; font-weight: 700; margin: 0 0 6px; }
-    .meta { color: #64748b; font-size: 0.85rem; margin: 0 0 36px; }
-    .chart-wrap { position: relative; height: 420px; margin-bottom: 40px; }
+    .meta { color: #64748b; font-size: 0.85rem; margin: 0 0 24px; }
+    .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .chart-header h2 { font-size: 0.85rem; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: .05em; margin: 0; }
+    .chart-wrap { position: relative; height: 420px; margin-bottom: 40px; background: #fff; }
+    button.export {
+      font: 0.8rem/1 system-ui, sans-serif; color: #3b82f6; background: #eff6ff;
+      border: 1px solid #bfdbfe; border-radius: 6px; padding: 6px 14px;
+      cursor: pointer; transition: background .15s;
+    }
+    button.export:hover { background: #dbeafe; }
     table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
     th, td { padding: 10px 16px; text-align: right; border-bottom: 1px solid #e2e8f0; font-variant-numeric: tabular-nums; }
     th:first-child, td:first-child { text-align: left; font-variant-numeric: normal; }
@@ -77,6 +86,10 @@ public class HtmlReporter {
 <body>
   <h1>Enrichment Latency Benchmark</h1>
   <p class="meta">{{TIMESTAMP}} &nbsp;·&nbsp; {{ORDER_COUNT}} orders &nbsp;·&nbsp; {{PRODUCT_COUNT}} products &nbsp;·&nbsp; Mongo-Batch window: {{WINDOW_MS}}ms</p>
+  <div class="chart-header">
+    <h2>Latency by percentile (ms)</h2>
+    <button class="export" onclick="exportPng()">Download chart PNG</button>
+  </div>
   <div class="chart-wrap">
     <canvas id="chart"></canvas>
   </div>
@@ -89,7 +102,7 @@ public class HtmlReporter {
     </tbody>
   </table>
   <script>
-    new Chart(document.getElementById('chart'), {
+    const chart = new Chart(document.getElementById('chart'), {
       type: 'bar',
       data: {
         labels: ['min', 'mean', 'p50', 'p99', 'p99.9'],
@@ -114,6 +127,23 @@ public class HtmlReporter {
         }
       }
     });
+
+    function exportPng() {
+      // Draw chart onto white background before exporting (canvas default is transparent)
+      const canvas = document.getElementById('chart');
+      const out = document.createElement('canvas');
+      out.width = canvas.width;
+      out.height = canvas.height;
+      const ctx = out.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, out.width, out.height);
+      ctx.drawImage(canvas, 0, 0);
+
+      const a = document.createElement('a');
+      a.href = out.toDataURL('image/png');
+      a.download = 'benchmark-{{TIMESTAMP_FILE}}.png';
+      a.click();
+    }
   </script>
 </body>
 </html>
