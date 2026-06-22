@@ -1,0 +1,28 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "kafka",
+      "runtimeExecutable": "docker",
+      "runtimeArgs": ["compose", "up", "kafka"],
+      "port": 9092
+    },
+    {
+      "name": "mongo",
+      "runtimeExecutable": "docker",
+      "runtimeArgs": ["compose", "up", "mongo"],
+      "port": 27017
+    },
+    {
+      "name": "kafka-ui",
+      "runtimeExecutable": "docker",
+      "runtimeArgs": ["compose", "up", "kafka-ui"],
+      "port": 8080
+    },
+    {
+      "name": "benchmark",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "./gradlew run"]
+    }
+  ]
+}

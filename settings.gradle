@@ -1,0 +1,6 @@
+plugins {
+    // Auto-provisions Java 21 via Foojay if no compatible JDK is found locally
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
+}
+
+rootProject.name = 'kstream-ktable-vs-mongo-lookup'

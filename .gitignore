@@ -1,0 +1,24 @@
+# Gradle
+.gradle/
+build/
+
+# IDE
+.idea/
+*.iml
+.eclipse/
+.settings/
+.classpath
+.project
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Benchmark output
+results/
+
+# Kafka Streams local state store
+/tmp/kafka-streams/
+
+# Claude Code local config — contains machine-specific absolute paths
+.claude/launch.json
