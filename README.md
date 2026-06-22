@@ -62,8 +62,8 @@ Edit [`src/main/java/com/benchmark/config/AppConfig.java`](src/main/java/com/ben
 
 | Constant | Default | Effect |
 |---|---|---|
-| `ORDER_COUNT` | 10 000 | Total orders produced |
-| `PRODUCT_COUNT` | 1 000 | Reference dataset size |
+| `ORDER_COUNT` | 10000 | Total orders produced |
+| `PRODUCT_COUNT` | 1000 | Reference dataset size |
 | `WINDOW_MS` | 100 | Mongo-Batch flush interval — halving this halves the latency floor at the cost of 2× the query rate |
 
 ## Monitoring
