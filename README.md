@@ -1,17 +1,21 @@
 # KStream KTable vs MongoDB Lookup Benchmark
 
-Answers the question: **when enriching a Kafka stream with reference data, how much does the lookup strategy matter?**
+Answers two questions engineers face when enriching a Kafka stream with reference data:
 
-Four strategies are benchmarked end-to-end, measuring per-record latency from produce to enriched output:
+1. **Which lookup strategy has the lowest latency?**
+2. **Which strategies hold up under load — and which ones fall apart?**
+
+Five strategies are benchmarked end-to-end at four throughput rates (500 / 2,000 / 5,000 / 10,000 rec/s), measuring per-record latency from produce to enriched output:
 
 | Strategy | How it works |
 |---|---|
 | **KTable-Co** | KTable join — stream pre-keyed by `productId`, copartitioned with the reference topic. No repartition hop. |
-| **KTable** | KTable join — stream arrives keyed by `orderId`, `selectKey` triggers an internal repartition topic before the join. |
+| **GlobalKTable** | GlobalKTable join — full reference table replicated to every instance. No copartitioning required; join key extracted from the stream value at join time. |
+| **KTable** | KTable join — stream arrives keyed by `orderId`; `selectKey` triggers an internal repartition topic before the join. |
 | **Mongo-Batch** | Records buffered for `WINDOW_MS` (default 100 ms); one `$in` query per window flush. |
 | **Mongo-Sync** | Synchronous `findOne` per record. |
 
-Expected ordering: **KTable-Co < KTable < Mongo-Batch < Mongo-Sync**
+Expected ordering at high load: **KTable-Co ≈ GlobalKTable < KTable < Mongo-Batch ≪ Mongo-Sync**
 
 ## Prerequisites
 
@@ -24,18 +28,23 @@ Expected ordering: **KTable-Co < KTable < Mongo-Batch < Mongo-Sync**
 # Start Kafka and MongoDB
 docker compose up -d
 
-# Wait ~10 seconds, then run the benchmark
+# Wait ~10 seconds, then run the benchmark (~4 minutes)
 ./gradlew run
 
 # Tear down and reset all state when done
 docker compose down -v
 ```
 
-Each run prints a latency table to stdout and writes a self-contained HTML report to `results/benchmark-<timestamp>.html`. The report has a **"Download chart PNG"** button for pulling the chart into slides.
+The benchmark runs 5,000 orders through all five strategies at each of four target rates. Each run prints a latency table to stdout and writes a self-contained HTML report to `results/benchmark-<timestamp>.html` with two charts:
+
+- **Latency distribution** — grouped bar chart of min / mean / p50 / p99 / p99.9 at max load
+- **p99 latency vs throughput rate** — line chart showing how each strategy degrades under increasing load
+
+Both charts have a **"Download PNG"** button for dropping into slides.
 
 ## Sample results
 
-Open [`showcase/benchmark-demo.html`](showcase/benchmark-demo.html) in a browser to see a real benchmark run without having to execute one yourself.
+Open [`showcase/benchmark-demo.html`](showcase/benchmark-demo.html) in a browser — or view [`showcase/benchmark-demo.png`](showcase/benchmark-demo.png) — to see a real benchmark run without running it yourself.
 
 ## Architecture
 
@@ -49,12 +58,13 @@ OrderProducer
   └── orders-by-product   (4 partitions, key=productId)  ← copartitioned with products-ref
 
 orders-by-product ──► CopartitionedKTablePipeline ──join(KTable, no repartition)──► orders-enriched-ktable-copart
+orders-raw        ──► GlobalKTablePipeline          ──join(GlobalKTable)────────────► orders-enriched-ktable-global
 orders-raw        ──► KTablePipeline               ──selectKey→repartition→join───► orders-enriched-ktable
 orders-raw        ──► MongoPipeline                ──findOne per record────────────► orders-enriched-mongo
 orders-raw        ──► WindowedMongoPipeline         ──$in per WINDOW_MS─────────────► orders-enriched-windowed-mongo
 ```
 
-All four pipelines run concurrently. `BenchmarkCollector` reads all four output topics and sorts latencies before printing the report.
+All five pipelines run concurrently. Topics are deleted and recreated between rate runs so each pass starts from a clean slate. The KTable local state store is preserved across runs (only `products-ref` is kept) so subsequent passes start up quickly.
 
 ## Tuning
 
@@ -62,7 +72,8 @@ Edit [`src/main/java/com/benchmark/config/AppConfig.java`](src/main/java/com/ben
 
 | Constant | Default | Effect |
 |---|---|---|
-| `ORDER_COUNT` | 10000 | Total orders produced |
+| `THROUGHPUT_RATES` | `{500, 2000, 5000, 10000}` | Target producer rates (rec/s) |
+| `THROUGHPUT_ORDER_COUNT` | 5000 | Orders produced per rate run |
 | `PRODUCT_COUNT` | 1000 | Reference dataset size |
 | `WINDOW_MS` | 100 | Mongo-Batch flush interval — halving this halves the latency floor at the cost of 2× the query rate |
 
