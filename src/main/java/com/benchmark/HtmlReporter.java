@@ -112,6 +112,8 @@ public class HtmlReporter {
     th { background: #f8fafc; font-weight: 600; color: #475569; font-size: 0.8rem; letter-spacing: .04em; text-transform: uppercase; }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background: #f8fafc; }
+    .note { margin-top: 32px; padding: 16px 20px; background: #f8fafc; border-left: 3px solid #cbd5e1; border-radius: 4px; font-size: 0.85rem; color: #475569; line-height: 1.6; }
+    .note strong { color: #1e293b; }
   </style>
 </head>
 <body>
@@ -146,6 +148,14 @@ public class HtmlReporter {
       {{TABLE_ROWS}}
     </tbody>
   </table>
+
+  <div class="note">
+    <strong>Memory tradeoff (not measured here):</strong>
+    KTable-Co and KTable each hold only their assigned partition slice of the reference dataset per instance — memory scales as <em>dataset size ÷ partition count</em>, so adding instances keeps per-instance footprint flat.
+    GlobalKTable replicates the <em>full</em> dataset to every instance regardless of how many are running — at {{PRODUCT_COUNT}} products this is negligible, but at 100k+ products it becomes a hard ceiling on horizontal scaling.
+    Mongo-Batch and Mongo-Sync hold no reference data in-process at all.
+    See the companion memory benchmark for empirical numbers across dataset sizes.
+  </div>
 
   <script>
     const barChart = new Chart(document.getElementById('barChart'), {

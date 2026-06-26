@@ -77,6 +77,12 @@ Edit [`src/main/java/com/benchmark/config/AppConfig.java`](src/main/java/com/ben
 | `PRODUCT_COUNT` | 1000 | Reference dataset size |
 | `WINDOW_MS` | 100 | Mongo-Batch flush interval — halving this halves the latency floor at the cost of 2× the query rate |
 
+## Memory tradeoff (not measured here)
+
+KTable-Co and KTable each hold only their assigned partition slice of the reference dataset — memory per instance scales as *dataset size ÷ partition count*, so adding instances keeps the per-instance footprint flat. GlobalKTable replicates the **full** dataset to every instance regardless of how many are running: at 1,000 products this is negligible, but at 100k+ products it becomes a hard ceiling on horizontal scaling. Mongo-Batch and Mongo-Sync hold no reference data in-process at all.
+
+A companion benchmark that runs each strategy in isolation and measures heap + RocksDB off-heap across varying dataset sizes (1k → 1M products) would make this tradeoff empirical. See `MEMORY_BENCHMARK_PLAN.md` for the design.
+
 ## Monitoring
 
 Kafka UI runs at **http://localhost:8080** while the Docker stack is up — inspect topics, messages, and consumer group lag in real time.
