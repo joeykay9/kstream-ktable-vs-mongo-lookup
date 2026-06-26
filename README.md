@@ -54,7 +54,9 @@ Runs each strategy in a separate JVM process and measures memory at rest (after 
 - **RSS vs dataset size** — total process memory (heap + RocksDB off-heap + JVM overhead)
 - **RocksDB live data vs dataset size** — state store footprint specifically (0 for Mongo strategies)
 
-This makes the GlobalKTable memory cliff empirical: GlobalKTable holds the full dataset on every instance, while KTable-Co/KTable hold only one partition slice per instance.
+A notable finding: KTable strategies (which use RocksDB) show higher RSS than GlobalKTable (which uses an in-memory Java heap store by default) at small-to-medium dataset sizes — RocksDB adds native overhead even for small stores. At large datasets (500k+) the relationship reverses as GlobalKTable's full-dataset heap usage grows.
+
+Open [`showcase/memory-demo.html`](showcase/memory-demo.html) to see a sample run across 1k / 10k / 100k products.
 
 Tune the dataset sizes in [`AppConfig.MEMORY_PRODUCT_COUNTS`](src/main/java/com/benchmark/config/AppConfig.java). Note: at 500k products, each KTable strategy takes 1–5 minutes to load from Kafka — the benchmark is sequential and can run for 30–60 minutes at the full dataset range.
 

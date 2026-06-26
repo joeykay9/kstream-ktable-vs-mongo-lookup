@@ -75,11 +75,20 @@ public class DataSetup {
             // would read all historical records from prior runs and report bogus latencies.
             try {
                 admin.deleteTopics(names).all().get(30, TimeUnit.SECONDS);
-                Thread.sleep(2_000); // wait for broker to finish deletion
                 log.info("Existing topics deleted");
             } catch (Exception e) {
                 log.debug("Topic deletion skipped (first run or already gone): {}", e.getMessage());
             }
+            // Poll until the topics are fully gone from broker metadata before recreating.
+            // Kafka deletes asynchronously; recreating before the deletion completes throws
+            // TopicExistsException with "marked for deletion".
+            long deadline = System.currentTimeMillis() + 30_000;
+            while (System.currentTimeMillis() < deadline) {
+                Set<String> existing = admin.listTopics().names().get(10, TimeUnit.SECONDS);
+                if (names.stream().noneMatch(existing::contains)) break;
+                Thread.sleep(500);
+            }
+            Thread.sleep(2_000); // grace period: broker metadata can lag behind the list view
 
             List<NewTopic> topics = List.of(
                 compactedTopic(AppConfig.TOPIC_PRODUCTS_REF, 4),

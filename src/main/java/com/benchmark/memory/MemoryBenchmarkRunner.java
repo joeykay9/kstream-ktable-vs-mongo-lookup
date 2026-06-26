@@ -63,6 +63,9 @@ public class MemoryBenchmarkRunner {
                 } finally {
                     child.destroyForcibly();
                     child.waitFor(10, TimeUnit.SECONDS);
+                    // Brief pause so the Kafka broker finishes processing the previous
+                    // pipeline's consumer-group shutdown before the next child connects.
+                    Thread.sleep(2_000);
                 }
                 results.add(new MemoryResult(label, productCount, stats));
             }

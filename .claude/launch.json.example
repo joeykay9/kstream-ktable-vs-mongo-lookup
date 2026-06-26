@@ -4,20 +4,23 @@
     {
       "name": "kafka",
       "runtimeExecutable": "docker",
-      "runtimeArgs": ["compose", "up", "kafka"],
-      "port": 9092
+      "runtimeArgs": ["compose", "logs", "--follow", "kafka"]
     },
     {
       "name": "mongo",
       "runtimeExecutable": "docker",
-      "runtimeArgs": ["compose", "up", "mongo"],
-      "port": 27017
+      "runtimeArgs": ["compose", "logs", "--follow", "mongo"]
     },
     {
       "name": "kafka-ui",
       "runtimeExecutable": "docker",
-      "runtimeArgs": ["compose", "up", "kafka-ui"],
-      "port": 8080
+      "runtimeArgs": ["compose", "logs", "--follow", "kafka-ui"]
+    },
+    {
+      "name": "showcase",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "python3 -m http.server 9090 --directory showcase"],
+      "port": 9090
     },
     {
       "name": "benchmark",

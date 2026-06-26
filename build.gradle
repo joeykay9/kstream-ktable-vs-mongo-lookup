@@ -45,4 +45,7 @@ tasks.register('runMemory', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.benchmark.memory.MemoryBenchmarkRunner'
     jvmArgs '-Dfile.encoding=UTF-8'
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
 }
