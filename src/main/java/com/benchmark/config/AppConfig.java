@@ -26,5 +26,8 @@ public final class AppConfig {
     public static final int[] THROUGHPUT_RATES = {500, 2_000, 5_000, 10_000};
     public static final int THROUGHPUT_ORDER_COUNT = 5_000;
 
+    // Memory benchmark: dataset sizes to sweep (./gradlew runMemory)
+    public static final int[] MEMORY_PRODUCT_COUNTS = {1_000, 10_000, 100_000, 500_000};
+
     private AppConfig() {}
 }

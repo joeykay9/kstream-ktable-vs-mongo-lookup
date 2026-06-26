@@ -28,19 +28,35 @@ Expected ordering at high load: **KTable-Co ≈ GlobalKTable < KTable < Mongo-Ba
 # Start Kafka and MongoDB
 docker compose up -d
 
-# Wait ~10 seconds, then run the benchmark (~4 minutes)
+# Wait ~10 seconds, then run the latency benchmark (~4 minutes)
 ./gradlew run
+
+# Run the memory benchmark (~20–40 minutes depending on hardware)
+./gradlew runMemory
 
 # Tear down and reset all state when done
 docker compose down -v
 ```
 
-The benchmark runs 5,000 orders through all five strategies at each of four target rates. Each run prints a latency table to stdout and writes a self-contained HTML report to `results/benchmark-<timestamp>.html` with two charts:
+### Latency benchmark (`./gradlew run`)
+
+Runs 5,000 orders through all five strategies at each of four target rates. Prints a latency table to stdout and writes `results/benchmark-<timestamp>.html` with two charts:
 
 - **Latency distribution** — grouped bar chart of min / mean / p50 / p99 / p99.9 at max load
 - **p99 latency vs throughput rate** — line chart showing how each strategy degrades under increasing load
 
 Both charts have a **"Download PNG"** button for dropping into slides.
+
+### Memory benchmark (`./gradlew runMemory`)
+
+Runs each strategy in a separate JVM process and measures memory at rest (after the state store is fully loaded) across four dataset sizes: 1k, 10k, 100k, and 500k products. Writes `results/memory-<timestamp>.html` with two charts:
+
+- **RSS vs dataset size** — total process memory (heap + RocksDB off-heap + JVM overhead)
+- **RocksDB live data vs dataset size** — state store footprint specifically (0 for Mongo strategies)
+
+This makes the GlobalKTable memory cliff empirical: GlobalKTable holds the full dataset on every instance, while KTable-Co/KTable hold only one partition slice per instance.
+
+Tune the dataset sizes in [`AppConfig.MEMORY_PRODUCT_COUNTS`](src/main/java/com/benchmark/config/AppConfig.java). Note: at 500k products, each KTable strategy takes 1–5 minutes to load from Kafka — the benchmark is sequential and can run for 30–60 minutes at the full dataset range.
 
 ## Sample results
 
@@ -77,11 +93,11 @@ Edit [`src/main/java/com/benchmark/config/AppConfig.java`](src/main/java/com/ben
 | `PRODUCT_COUNT` | 1000 | Reference dataset size |
 | `WINDOW_MS` | 100 | Mongo-Batch flush interval — halving this halves the latency floor at the cost of 2× the query rate |
 
-## Memory tradeoff (not measured here)
+## Memory tradeoff
 
 KTable-Co and KTable each hold only their assigned partition slice of the reference dataset — memory per instance scales as *dataset size ÷ partition count*, so adding instances keeps the per-instance footprint flat. GlobalKTable replicates the **full** dataset to every instance regardless of how many are running: at 1,000 products this is negligible, but at 100k+ products it becomes a hard ceiling on horizontal scaling. Mongo-Batch and Mongo-Sync hold no reference data in-process at all.
 
-A companion benchmark that runs each strategy in isolation and measures heap + RocksDB off-heap across varying dataset sizes (1k → 1M products) would make this tradeoff empirical. See `MEMORY_BENCHMARK_PLAN.md` for the design.
+Run `./gradlew runMemory` to measure this empirically — see the **Memory benchmark** section under Quick start.
 
 ## Monitoring
 

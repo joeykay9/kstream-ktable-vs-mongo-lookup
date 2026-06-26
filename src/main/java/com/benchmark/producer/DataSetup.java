@@ -29,7 +29,11 @@ public class DataSetup {
     private static final String[] CATEGORIES = {"Electronics", "Clothing", "Books", "Food", "Toys"};
 
     public List<Product> setupAll() throws Exception {
-        List<Product> products = generateProducts();
+        return setupAll(AppConfig.PRODUCT_COUNT);
+    }
+
+    public List<Product> setupAll(int productCount) throws Exception {
+        List<Product> products = generateProducts(productCount);
         createTopics();
         clearLocalStreamsState();
         loadProductsToKafka(products);
@@ -37,10 +41,10 @@ public class DataSetup {
         return products;
     }
 
-    private List<Product> generateProducts() {
+    private List<Product> generateProducts(int count) {
         List<Product> products = new ArrayList<>();
         Random rng = new Random(42);
-        for (int i = 0; i < AppConfig.PRODUCT_COUNT; i++) {
+        for (int i = 0; i < count; i++) {
             products.add(new Product(
                 "product-" + i,
                 "Product " + i,
@@ -123,7 +127,7 @@ public class DataSetup {
         }
     }
 
-    private void clearLocalStreamsState() {
+    public void clearLocalStreamsState() {
         Path stateDir = Path.of("/tmp/kafka-streams");
         if (!Files.exists(stateDir)) return;
         try {
@@ -138,6 +142,22 @@ public class DataSetup {
             log.info("Cleared local Kafka Streams state");
         } catch (IOException e) {
             log.warn("Could not fully clear Kafka Streams state: {}", e.getMessage());
+        }
+    }
+
+    public void clearMemoryBenchmarkTopics() throws Exception {
+        Properties props = new Properties();
+        props.put("bootstrap.servers", AppConfig.BOOTSTRAP_SERVERS);
+        try (AdminClient admin = AdminClient.create(props)) {
+            List<String> memTopics = admin.listTopics().names()
+                .get(30, TimeUnit.SECONDS).stream()
+                .filter(t -> t.startsWith("mem-"))
+                .collect(Collectors.toList());
+            if (!memTopics.isEmpty()) {
+                admin.deleteTopics(memTopics).all().get(30, TimeUnit.SECONDS);
+                Thread.sleep(1_000);
+                log.info("Cleared {} memory-benchmark internal topics", memTopics.size());
+            }
         }
     }
 

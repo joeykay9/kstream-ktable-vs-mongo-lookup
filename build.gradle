@@ -40,3 +40,9 @@ test {
 run {
     jvmArgs '-Dfile.encoding=UTF-8'
 }
+
+tasks.register('runMemory', JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.benchmark.memory.MemoryBenchmarkRunner'
+    jvmArgs '-Dfile.encoding=UTF-8'
+}
